@@ -12,8 +12,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/sokinpui/chat2response/internal/proxy"
-	"github.com/sokinpui/chat2response/internal/types"
+	"github.com/sokinpui/chat2response/pkg/proxy"
+	"github.com/sokinpui/chat2response/pkg/types"
 )
 
 type Server struct {

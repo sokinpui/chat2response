@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sokinpui/chat2response/internal/utils"
+	"github.com/sokinpui/chat2response/pkg/utils"
 )
 
 type activeRequest struct {

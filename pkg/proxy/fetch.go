@@ -9,10 +9,10 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/sokinpui/chat2response/internal/translate/anthropic"
-	"github.com/sokinpui/chat2response/internal/translate/openai"
-	"github.com/sokinpui/chat2response/internal/types"
-	"github.com/sokinpui/chat2response/internal/utils"
+	"github.com/sokinpui/chat2response/pkg/translate/anthropic"
+	"github.com/sokinpui/chat2response/pkg/translate/openai"
+	"github.com/sokinpui/chat2response/pkg/types"
+	"github.com/sokinpui/chat2response/pkg/utils"
 )
 
 var droppedHeaders = map[string]bool{

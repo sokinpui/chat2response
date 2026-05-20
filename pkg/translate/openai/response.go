@@ -3,8 +3,8 @@ package openai
 import (
 	"time"
 
-	"github.com/sokinpui/chat2response/internal/types"
-	"github.com/sokinpui/chat2response/internal/utils"
+	"github.com/sokinpui/chat2response/pkg/types"
+	"github.com/sokinpui/chat2response/pkg/utils"
 )
 
 var SHELL_TOOL_NAMES = map[string]bool{

@@ -5,8 +5,8 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/sokinpui/chat2response/internal/proxy"
-	"github.com/sokinpui/chat2response/internal/types"
+	"github.com/sokinpui/chat2response/pkg/proxy"
+	"github.com/sokinpui/chat2response/pkg/types"
 )
 
 func NewProxyHandler(opts proxy.ProxyOptions) http.HandlerFunc {

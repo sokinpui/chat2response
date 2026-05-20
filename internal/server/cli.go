@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/sokinpui/chat2response/internal/proxy"
-	"github.com/sokinpui/chat2response/internal/types"
-	"github.com/sokinpui/chat2response/internal/utils"
+	"github.com/sokinpui/chat2response/pkg/proxy"
+	"github.com/sokinpui/chat2response/pkg/types"
+	"github.com/sokinpui/chat2response/pkg/utils"
 )
 
 type CliArgs struct {

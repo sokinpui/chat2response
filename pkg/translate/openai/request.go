@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/sokinpui/chat2response/internal/types"
-	"github.com/sokinpui/chat2response/internal/utils"
+	"github.com/sokinpui/chat2response/pkg/types"
+	"github.com/sokinpui/chat2response/pkg/utils"
 )
 
 type TranslateRequestOptions struct {

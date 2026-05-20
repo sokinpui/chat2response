@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"slices"
 
-	"github.com/sokinpui/chat2response/internal/types"
+	"github.com/sokinpui/chat2response/pkg/types"
 )
 
 func LoadConfigFile(searchFrom string) (*types.ConfigFile, error) {
