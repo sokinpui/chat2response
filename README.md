@@ -1,1 +1,1 @@
-Adapter for old standart Chat Completions format API and new Responses format API
+Adapter for OpenAI Chat Completions format API and Anthropic format API to OpenAI Responses format API
