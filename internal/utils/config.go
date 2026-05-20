@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 
 	"github.com/sokinpui/chat2response/internal/types"
 )
@@ -88,11 +89,8 @@ func ValidateUpstreamConfig(upstream *types.UpstreamConfig) error {
 	if upstream.Format != "" {
 		valid := false
 		formats := []types.UpstreamFormat{types.UpstreamFormatAnthropic, types.UpstreamFormatOpenAIChat}
-		for _, f := range formats {
-			if upstream.Format == f {
-				valid = true
-				break
-			}
+		if slices.Contains(formats, upstream.Format) {
+			valid = true
 		}
 		if !valid {
 			return fmt.Errorf("invalid format: %s", upstream.Format)

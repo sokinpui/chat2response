@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 )
 
-func SafeJsonParse(text string, v interface{}) error {
+func SafeJsonParse(text string, v any) error {
 	return json.Unmarshal([]byte(text), v)
 }
 
-func JsonStringifySafe(value interface{}) string {
+func JsonStringifySafe(value any) string {
 	data, err := json.Marshal(value)
 	if err != nil {
 		return ""

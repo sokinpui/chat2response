@@ -1,6 +1,8 @@
 package anthropic
 
 import (
+	"maps"
+	"slices"
 	"strings"
 
 	"github.com/sokinpui/chat2response/internal/types"
@@ -101,7 +103,7 @@ func TranslateRequest(data types.ResponsesRequest, options TranslateRequestOptio
 	}
 }
 
-func extractSystemBlocks(instructions interface{}) []types.AnthropicTextBlock {
+func extractSystemBlocks(instructions any) []types.AnthropicTextBlock {
 	if instructions == nil {
 		return nil
 	}
@@ -109,7 +111,7 @@ func extractSystemBlocks(instructions interface{}) []types.AnthropicTextBlock {
 		return []types.AnthropicTextBlock{{Type: "text", Text: s}}
 	}
 
-	arr, ok := instructions.([]interface{})
+	arr, ok := instructions.([]any)
 	if !ok {
 		return nil
 	}
@@ -120,13 +122,13 @@ func extractSystemBlocks(instructions interface{}) []types.AnthropicTextBlock {
 			blocks = append(blocks, types.AnthropicTextBlock{Type: "text", Text: s})
 			continue
 		}
-		if m, ok := item.(map[string]interface{}); ok {
+		if m, ok := item.(map[string]any); ok {
 			text, _ := m["text"].(string)
 			block := types.AnthropicTextBlock{
 				Type: "text",
 				Text: text,
 			}
-			if cc, ok := m["cache_control"].(map[string]interface{}); ok {
+			if cc, ok := m["cache_control"].(map[string]any); ok {
 				block.CacheControl = cc
 			}
 			blocks = append(blocks, block)
@@ -187,10 +189,10 @@ func buildMessages(data types.ResponsesRequest, systemBlocks []types.AnthropicTe
 		flushToolResults()
 	}
 
-	inputItems := []interface{}{}
+	inputItems := []any{}
 	if s, ok := data.Input.(string); ok {
 		inputItems = append(inputItems, s)
-	} else if arr, ok := data.Input.([]interface{}); ok {
+	} else if arr, ok := data.Input.([]any); ok {
 		inputItems = arr
 	}
 
@@ -204,7 +206,7 @@ func buildMessages(data types.ResponsesRequest, systemBlocks []types.AnthropicTe
 			continue
 		}
 
-		item, ok := raw.(map[string]interface{})
+		item, ok := raw.(map[string]any)
 		if !ok {
 			continue
 		}
@@ -264,13 +266,13 @@ func buildMessages(data types.ResponsesRequest, systemBlocks []types.AnthropicTe
 
 			if s, ok := rawContent.(string); ok {
 				contentBlocks = append(contentBlocks, types.AnthropicContentBlock{Type: "text", Text: &s})
-			} else if arr, ok := rawContent.([]interface{}); ok {
+			} else if arr, ok := rawContent.([]any); ok {
 				for _, part := range arr {
 					if s, ok := part.(string); ok {
 						contentBlocks = append(contentBlocks, types.AnthropicContentBlock{Type: "text", Text: &s})
 						continue
 					}
-					m, ok := part.(map[string]interface{})
+					m, ok := part.(map[string]any)
 					if !ok {
 						continue
 					}
@@ -278,7 +280,7 @@ func buildMessages(data types.ResponsesRequest, systemBlocks []types.AnthropicTe
 					if pType == "input_text" || pType == "text" || pType == "output_text" {
 						text, _ := m["text"].(string)
 						block := types.AnthropicContentBlock{Type: "text", Text: &text}
-						if cc, ok := m["cache_control"].(map[string]interface{}); ok {
+						if cc, ok := m["cache_control"].(map[string]any); ok {
 							block.CacheControl = cc
 						}
 						contentBlocks = append(contentBlocks, block)
@@ -346,17 +348,17 @@ func buildMessages(data types.ResponsesRequest, systemBlocks []types.AnthropicTe
 	return buildResult{Messages: messages, HasPromptCache: hasPromptCache}
 }
 
-func extractMessageText(item map[string]interface{}) string {
+func extractMessageText(item map[string]any) string {
 	rawContent := item["content"]
 	if s, ok := rawContent.(string); ok {
 		return s
 	}
-	if arr, ok := rawContent.([]interface{}); ok {
+	if arr, ok := rawContent.([]any); ok {
 		var sb strings.Builder
 		for _, part := range arr {
 			if s, ok := part.(string); ok {
 				sb.WriteString(s)
-			} else if m, ok := part.(map[string]interface{}); ok {
+			} else if m, ok := part.(map[string]any); ok {
 				if text, ok := m["text"].(string); ok {
 					sb.WriteString(text)
 				}
@@ -367,7 +369,7 @@ func extractMessageText(item map[string]interface{}) string {
 	return ""
 }
 
-func extractToolOutputText(item map[string]interface{}) string {
+func extractToolOutputText(item map[string]any) string {
 	raw := item["output"]
 	if raw == nil {
 		raw = item["content"]
@@ -382,12 +384,12 @@ func extractToolOutputText(item map[string]interface{}) string {
 	if s, ok := raw.(string); ok {
 		return s
 	}
-	if arr, ok := raw.([]interface{}); ok {
+	if arr, ok := raw.([]any); ok {
 		var sb strings.Builder
 		for _, part := range arr {
 			if s, ok := part.(string); ok {
 				sb.WriteString(s)
-			} else if m, ok := part.(map[string]interface{}); ok {
+			} else if m, ok := part.(map[string]any); ok {
 				if text, ok := m["text"].(string); ok {
 					sb.WriteString(text)
 				}
@@ -396,7 +398,7 @@ func extractToolOutputText(item map[string]interface{}) string {
 		return sb.String()
 	}
 
-	if m, ok := raw.(map[string]interface{}); ok {
+	if m, ok := raw.(map[string]any); ok {
 		if content, ok := m["content"].(string); ok {
 			return content
 		}
@@ -404,7 +406,7 @@ func extractToolOutputText(item map[string]interface{}) string {
 	return ""
 }
 
-func mapInputToolCall(item map[string]interface{}) *types.AnthropicToolUseBlock {
+func mapInputToolCall(item map[string]any) *types.AnthropicToolUseBlock {
 	callID, _ := item["call_id"].(string)
 	if callID == "" {
 		callID, _ = item["id"].(string)
@@ -433,10 +435,10 @@ func mapInputToolCall(item map[string]interface{}) *types.AnthropicToolUseBlock 
 		return nil
 	}
 
-	input := make(map[string]interface{})
-	if args, ok := item["arguments"].(map[string]interface{}); ok {
+	input := make(map[string]any)
+	if args, ok := item["arguments"].(map[string]any); ok {
 		input = args
-	} else if in, ok := item["input"].(map[string]interface{}); ok {
+	} else if in, ok := item["input"].(map[string]any); ok {
 		input = in
 	}
 
@@ -447,18 +449,18 @@ func mapInputToolCall(item map[string]interface{}) *types.AnthropicToolUseBlock 
 		Input: input,
 	}
 
-	if cc, ok := item["cache_control"].(map[string]interface{}); ok {
+	if cc, ok := item["cache_control"].(map[string]any); ok {
 		block.CacheControl = cc
 	}
 
 	return block
 }
 
-func extractImageUrl(m map[string]interface{}) string {
+func extractImageUrl(m map[string]any) string {
 	if imgUrl, ok := m["image_url"].(string); ok {
 		return imgUrl
 	}
-	if imgObj, ok := m["image_url"].(map[string]interface{}); ok {
+	if imgObj, ok := m["image_url"].(map[string]any); ok {
 		if url, ok := imgObj["url"].(string); ok {
 			return url
 		}
@@ -477,8 +479,8 @@ func parseDataUrl(url string) (mediaType string, data string, ok bool) {
 	return parts[0], parts[1], true
 }
 
-func mapTools(tools []types.ResponsesTool) []interface{} {
-	var out []interface{}
+func mapTools(tools []types.ResponsesTool) []any {
+	var out []any
 	for _, tool := range tools {
 		if anthropicBuiltinToolTypes[tool.Type] {
 			out = append(out, tool)
@@ -498,7 +500,7 @@ func mapTools(tools []types.ResponsesTool) []interface{} {
 			continue
 		}
 
-		params := map[string]interface{}{"type": "object"}
+		params := map[string]any{"type": "object"}
 		if tool.Function != nil && tool.Function.Parameters != nil {
 			params = tool.Function.Parameters
 		} else if tool.Parameters != nil {
@@ -521,7 +523,7 @@ func mapTools(tools []types.ResponsesTool) []interface{} {
 	return out
 }
 
-func mapToolChoice(choice interface{}) *types.AnthropicToolChoice {
+func mapToolChoice(choice any) *types.AnthropicToolChoice {
 	if choice == nil || choice == "auto" {
 		return &types.AnthropicToolChoice{Type: "auto"}
 	}
@@ -531,10 +533,10 @@ func mapToolChoice(choice interface{}) *types.AnthropicToolChoice {
 	if choice == "none" {
 		return nil
 	}
-	if m, ok := choice.(map[string]interface{}); ok {
+	if m, ok := choice.(map[string]any); ok {
 		cType, _ := m["type"].(string)
 		if cType == "function" {
-			if fn, ok := m["function"].(map[string]interface{}); ok {
+			if fn, ok := m["function"].(map[string]any); ok {
 				if name, ok := fn["name"].(string); ok {
 					return &types.AnthropicToolChoice{Type: "tool", Name: name}
 				}
@@ -557,22 +559,15 @@ func mapThinking(data types.ResponsesRequest, maxTokens int, overrides map[strin
 	}
 
 	budgets := make(map[string]int)
-	for k, v := range defaultReasoningBudgets {
-		budgets[k] = v
-	}
-	for k, v := range overrides {
-		budgets[k] = v
-	}
+	maps.Copy(budgets, defaultReasoningBudgets)
+	maps.Copy(budgets, overrides)
 
 	budget, ok := budgets[effort]
 	if !ok {
 		budget = defaultReasoningBudgets["medium"]
 	}
 
-	clamped := budget
-	if maxTokens-1024 < clamped {
-		clamped = maxTokens - 1024
-	}
+	clamped := min(maxTokens-1024, budget)
 	if clamped < 1024 {
 		clamped = 1024
 	}
@@ -761,7 +756,7 @@ func markBlocksForCache(blocks []types.AnthropicTextBlock) []types.AnthropicText
 	count := 0
 	for i := range blocks {
 		if blocks[i].CacheControl == nil {
-			blocks[i].CacheControl = map[string]interface{}{"type": "ephemeral"}
+			blocks[i].CacheControl = map[string]any{"type": "ephemeral"}
 			count++
 			if count >= 3 {
 				break
@@ -777,7 +772,7 @@ func markCacheBreakpoint(messages []types.AnthropicMessage) []types.AnthropicMes
 			if arr, ok := messages[i].Content.([]types.AnthropicContentBlock); ok {
 				for j := len(arr) - 1; j >= 0; j-- {
 					if arr[j].Type == "text" && arr[j].CacheControl == nil {
-						arr[j].CacheControl = map[string]interface{}{"type": "ephemeral"}
+						arr[j].CacheControl = map[string]any{"type": "ephemeral"}
 						return messages
 					}
 				}
@@ -790,7 +785,7 @@ func markCacheBreakpoint(messages []types.AnthropicMessage) []types.AnthropicMes
 			if arr, ok := messages[i].Content.([]types.AnthropicContentBlock); ok {
 				for j := len(arr) - 1; j >= 0; j-- {
 					if arr[j].Type == "text" && arr[j].CacheControl == nil {
-						arr[j].CacheControl = map[string]interface{}{"type": "ephemeral"}
+						arr[j].CacheControl = map[string]any{"type": "ephemeral"}
 						return messages
 					}
 				}
@@ -802,14 +797,10 @@ func markCacheBreakpoint(messages []types.AnthropicMessage) []types.AnthropicMes
 }
 
 func contains(arr []string, s string) bool {
-	for _, item := range arr {
-		if item == s {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(arr, s)
 }
 
+//go:fix inline
 func ptr[T any](v T) *T {
-	return &v
+	return new(v)
 }

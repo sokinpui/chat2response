@@ -11,10 +11,10 @@ import (
 type ResponsesStreamMetadata struct {
 	Temperature *float64
 	TopP        *float64
-	Tools       []interface{}
-	ToolChoice  interface{}
+	Tools       []any
+	ToolChoice  any
 	Store       *bool
-	Metadata    map[string]interface{}
+	Metadata    map[string]any
 }
 
 type TranslateStreamOptions struct {
@@ -27,7 +27,7 @@ type TranslateStreamOptions struct {
 type blockState struct {
 	btype       string
 	outputIndex int
-	item        interface{}
+	item        any
 	buffer      string
 }
 
@@ -110,15 +110,15 @@ func (st *streamTranslator) createInitialEvent() types.ResponsesStreamEvent {
 		TopP:              st.metadata.TopP,
 		ToolChoice:        st.metadata.ToolChoice,
 		Tools:             st.metadata.Tools,
-		ParallelToolCalls: ptr(true),
-		Store:             ptr(true),
+		ParallelToolCalls: new(true),
+		Store:             new(true),
 		Metadata:          st.metadata.Metadata,
-		Output:            []interface{}{},
+		Output:            []any{},
 	}
 	if st.metadata.Store != nil {
 		resp.Store = st.metadata.Store
 	}
-	return st.makeEvent("response.created", map[string]interface{}{"response": resp})
+	return st.makeEvent("response.created", map[string]any{"response": resp})
 }
 
 func (st *streamTranslator) handleEvent(event types.AnthropicStreamEvent) []types.ResponsesStreamEvent {
@@ -168,12 +168,12 @@ func (st *streamTranslator) onContentBlockStart(index int, block types.Anthropic
 		item := types.ResponsesOutputReasoning{
 			ID:      utils.MakeId("rs"),
 			Type:    types.ResponsesItemTypeReasoning,
-			Summary: []interface{}{},
-			Content: []types.ResponsesContentPart{{Type: "reasoning_text", Text: ptr("")}},
-			Status:  ptr("in_progress"),
+			Summary: []any{},
+			Content: []types.ResponsesContentPart{{Type: "reasoning_text", Text: new("")}},
+			Status:  new("in_progress"),
 		}
 		st.blocks[index] = &blockState{btype: "thinking", outputIndex: idx, item: item}
-		events = append(events, st.makeEvent("response.output_item.added", map[string]interface{}{
+		events = append(events, st.makeEvent("response.output_item.added", map[string]any{
 			"response_id":  st.responseID,
 			"output_index": idx,
 			"item":         item,
@@ -189,11 +189,11 @@ func (st *streamTranslator) onContentBlockStart(index int, block types.Anthropic
 				Type:   types.ResponsesItemTypeMessage,
 				Role:   "assistant",
 				Status: "in_progress",
-				Content: []map[string]interface{}{
+				Content: []map[string]any{
 					{"type": "output_text", "text": ""},
 				},
 			}
-			events = append(events, st.makeEvent("response.output_item.added", map[string]interface{}{
+			events = append(events, st.makeEvent("response.output_item.added", map[string]any{
 				"response_id":  st.responseID,
 				"output_index": idx,
 				"item":         st.textItem,
@@ -217,11 +217,11 @@ func (st *streamTranslator) onContentBlockStart(index int, block types.Anthropic
 			Type:      types.ResponsesItemTypeFunctionCall,
 			Status:    "in_progress",
 			Name:      &name,
-			Arguments: ptr(""),
+			Arguments: new(""),
 			CallID:    &callID,
 		}
 		st.blocks[index] = &blockState{btype: "tool_use", outputIndex: idx, item: item}
-		events = append(events, st.makeEvent("response.output_item.added", map[string]interface{}{
+		events = append(events, st.makeEvent("response.output_item.added", map[string]any{
 			"response_id":  st.responseID,
 			"output_index": idx,
 			"item":         item,
@@ -231,7 +231,7 @@ func (st *streamTranslator) onContentBlockStart(index int, block types.Anthropic
 	return events
 }
 
-func (st *streamTranslator) onContentBlockDelta(index int, delta map[string]interface{}) []types.ResponsesStreamEvent {
+func (st *streamTranslator) onContentBlockDelta(index int, delta map[string]any) []types.ResponsesStreamEvent {
 	var events []types.ResponsesStreamEvent
 	block := st.blocks[index]
 	if block == nil {
@@ -247,7 +247,7 @@ func (st *streamTranslator) onContentBlockDelta(index int, delta map[string]inte
 			return nil
 		}
 		st.textBuffer += text
-		events = append(events, st.makeEvent("response.output_text.delta", map[string]interface{}{
+		events = append(events, st.makeEvent("response.output_text.delta", map[string]any{
 			"response_id":   st.responseID,
 			"item_id":       st.textItem.ID,
 			"output_index":  st.textItemIndex,
@@ -264,7 +264,7 @@ func (st *streamTranslator) onContentBlockDelta(index int, delta map[string]inte
 		if item, ok := block.item.(types.ResponsesOutputReasoning); ok {
 			text := block.buffer
 			item.Content[0].Text = &text
-			events = append(events, st.makeEvent("response.reasoning_text.delta", map[string]interface{}{
+			events = append(events, st.makeEvent("response.reasoning_text.delta", map[string]any{
 				"response_id":   st.responseID,
 				"item_id":       item.ID,
 				"output_index":  block.outputIndex,
@@ -282,7 +282,7 @@ func (st *streamTranslator) onContentBlockDelta(index int, delta map[string]inte
 		if item, ok := block.item.(types.ResponsesOutputFunctionCall); ok {
 			args := block.buffer
 			item.Arguments = &args
-			events = append(events, st.makeEvent("response.function_call_arguments.delta", map[string]interface{}{
+			events = append(events, st.makeEvent("response.function_call_arguments.delta", map[string]any{
 				"response_id":  st.responseID,
 				"item_id":      item.ID,
 				"output_index": block.outputIndex,
@@ -299,7 +299,7 @@ func (st *streamTranslator) finalize() []types.ResponsesStreamEvent {
 
 	type indexedItem struct {
 		index int
-		item  interface{}
+		item  any
 	}
 	var items []indexedItem
 
@@ -326,7 +326,7 @@ func (st *streamTranslator) finalize() []types.ResponsesStreamEvent {
 
 		if block.btype == "thinking" {
 			if item, ok := block.item.(types.ResponsesOutputReasoning); ok {
-				item.Status = ptr("completed")
+				item.Status = new("completed")
 				items = append(items, indexedItem{block.outputIndex, item})
 			}
 		} else if block.btype == "tool_use" {
@@ -342,7 +342,7 @@ func (st *streamTranslator) finalize() []types.ResponsesStreamEvent {
 						Type    *string  `json:"type,omitempty"`
 						Command []string `json:"command,omitempty"`
 					}{
-						Type:    ptr("exec"),
+						Type:    new("exec"),
 						Command: parsed.Command,
 					}
 				}
@@ -355,10 +355,10 @@ func (st *streamTranslator) finalize() []types.ResponsesStreamEvent {
 		return items[i].index < items[j].index
 	})
 
-	output := make([]interface{}, len(items))
+	output := make([]any, len(items))
 	for i, it := range items {
 		output[i] = it.item
-		events = append(events, st.makeEvent("response.output_item.done", map[string]interface{}{
+		events = append(events, st.makeEvent("response.output_item.done", map[string]any{
 			"response_id":  st.responseID,
 			"output_index": it.index,
 			"item":         it.item,
@@ -377,8 +377,8 @@ func (st *streamTranslator) finalize() []types.ResponsesStreamEvent {
 		TopP:              st.metadata.TopP,
 		ToolChoice:        st.metadata.ToolChoice,
 		Tools:             st.metadata.Tools,
-		ParallelToolCalls: ptr(true),
-		Store:             ptr(true),
+		ParallelToolCalls: new(true),
+		Store:             new(true),
 		Metadata:          st.metadata.Metadata,
 		Output:            output,
 		Usage: &types.ResponsesUsage{
@@ -398,11 +398,11 @@ func (st *streamTranslator) finalize() []types.ResponsesStreamEvent {
 		resp.Store = st.metadata.Store
 	}
 
-	events = append(events, st.makeEvent("response.completed", map[string]interface{}{"response": resp}))
+	events = append(events, st.makeEvent("response.completed", map[string]any{"response": resp}))
 	return events
 }
 
-func (st *streamTranslator) makeEvent(eventType string, data map[string]interface{}) types.ResponsesStreamEvent {
+func (st *streamTranslator) makeEvent(eventType string, data map[string]any) types.ResponsesStreamEvent {
 	st.seq++
 	return types.ResponsesStreamEvent{
 		ID:             utils.MakeId("evt"),

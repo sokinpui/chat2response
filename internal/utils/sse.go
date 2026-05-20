@@ -51,8 +51,8 @@ func parseSseBlock(block string) *SseMessage {
 	var event string
 	var dataLines []string
 
-	lines := strings.Split(block, "\n")
-	for _, line := range lines {
+	lines := strings.SplitSeq(block, "\n")
+	for line := range lines {
 		if line == "" || strings.HasPrefix(line, ":") {
 			continue
 		}
@@ -82,7 +82,7 @@ func parseSseBlock(block string) *SseMessage {
 	}
 }
 
-func EncodeSseEvent(event string, data interface{}) string {
+func EncodeSseEvent(event string, data any) string {
 	payload, ok := data.(string)
 	if !ok {
 		payload = JsonStringifySafe(data)

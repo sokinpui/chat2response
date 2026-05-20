@@ -34,7 +34,7 @@ type ProxyOptions struct {
 	DropImages      bool
 	OnCacheStats    func(stats types.CacheStats)
 	ReasoningEffort string
-	Thinking        interface{}
+	Thinking        any
 	TimeoutMs       int
 	Fallback        *ProxyOptions
 }
@@ -180,7 +180,7 @@ func applyHeaders(req *http.Request, format types.UpstreamFormat, opts ProxyOpti
 	}
 }
 
-func buildUpstreamBody(req types.ResponsesRequest, format types.UpstreamFormat, opts ProxyOptions) (interface{}, anthropic.ResponsesStreamMetadata) {
+func buildUpstreamBody(req types.ResponsesRequest, format types.UpstreamFormat, opts ProxyOptions) (any, anthropic.ResponsesStreamMetadata) {
 	if format == types.UpstreamFormatAnthropic {
 		res := anthropic.TranslateRequest(req, anthropic.TranslateRequestOptions{
 			ReasoningBudgets: nil,
@@ -210,7 +210,7 @@ func buildUpstreamBody(req types.ResponsesRequest, format types.UpstreamFormat, 
 
 	if opts.ReasoningEffort != "" {
 		if res.Request.Extra == nil {
-			res.Request.Extra = make(map[string]interface{})
+			res.Request.Extra = make(map[string]any)
 		}
 		res.Request.Extra["reasoning_effort"] = opts.ReasoningEffort
 	}
@@ -334,24 +334,24 @@ func extractCacheStats(usage *types.ResponsesUsage) types.CacheStats {
 }
 
 func lastUserMessageHasImage(req types.ResponsesRequest) bool {
-	input, ok := req.Input.([]interface{})
+	input, ok := req.Input.([]any)
 	if !ok {
 		return false
 	}
 
 	for i := len(input) - 1; i >= 0; i-- {
-		item, ok := input[i].(map[string]interface{})
+		item, ok := input[i].(map[string]any)
 		if !ok || item["role"] != "user" {
 			continue
 		}
 
-		content, ok := item["content"].([]interface{})
+		content, ok := item["content"].([]any)
 		if !ok {
 			return false
 		}
 
 		for _, part := range content {
-			p, ok := part.(map[string]interface{})
+			p, ok := part.(map[string]any)
 			if !ok {
 				continue
 			}

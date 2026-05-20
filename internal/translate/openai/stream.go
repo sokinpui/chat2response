@@ -11,10 +11,10 @@ import (
 type ResponsesStreamMetadata struct {
 	Temperature *float64
 	TopP        *float64
-	Tools       []interface{}
-	ToolChoice  interface{}
+	Tools       []any
+	ToolChoice  any
 	Store       *bool
-	Metadata    map[string]interface{}
+	Metadata    map[string]any
 }
 
 type TranslateStreamOptions struct {
@@ -109,15 +109,15 @@ func (st *streamTranslator) createInitialEvent() types.ResponsesStreamEvent {
 		TopP:              st.metadata.TopP,
 		ToolChoice:        st.metadata.ToolChoice,
 		Tools:             st.metadata.Tools,
-		ParallelToolCalls: ptr(true),
-		Store:             ptr(true),
+		ParallelToolCalls: new(true),
+		Store:             new(true),
 		Metadata:          st.metadata.Metadata,
-		Output:            []interface{}{},
+		Output:            []any{},
 	}
 	if st.metadata.Store != nil {
 		resp.Store = st.metadata.Store
 	}
-	return st.makeEvent("response.created", map[string]interface{}{"response": resp})
+	return st.makeEvent("response.created", map[string]any{"response": resp})
 }
 
 func (st *streamTranslator) handleChunk(chunk types.OpenAiChatStreamChunk) []types.ResponsesStreamEvent {
@@ -158,7 +158,7 @@ func (st *streamTranslator) handleChunk(chunk types.OpenAiChatStreamChunk) []typ
 			}
 			state = &toolCallState{outputIndex: outputIdx, item: item}
 			st.toolCalls[idx] = state
-			events = append(events, st.makeEvent("response.output_item.added", map[string]interface{}{
+			events = append(events, st.makeEvent("response.output_item.added", map[string]any{
 				"response_id":  st.responseID,
 				"output_index": outputIdx,
 				"item":         item,
@@ -188,7 +188,7 @@ func (st *streamTranslator) handleChunk(chunk types.OpenAiChatStreamChunk) []typ
 					}
 					args += partial
 					state.item.Arguments = &args
-					events = append(events, st.makeEvent("response.function_call_arguments.delta", map[string]interface{}{
+					events = append(events, st.makeEvent("response.function_call_arguments.delta", map[string]any{
 						"response_id":  st.responseID,
 						"item_id":      state.item.ID,
 						"output_index": state.outputIndex,
@@ -209,11 +209,11 @@ func (st *streamTranslator) handleChunk(chunk types.OpenAiChatStreamChunk) []typ
 				Type:   types.ResponsesItemTypeMessage,
 				Role:   types.OpenAiRoleAssistant,
 				Status: "in_progress",
-				Content: []map[string]interface{}{
+				Content: []map[string]any{
 					{"type": "output_text", "text": ""},
 				},
 			}
-			events = append(events, st.makeEvent("response.output_item.added", map[string]interface{}{
+			events = append(events, st.makeEvent("response.output_item.added", map[string]any{
 				"response_id":  st.responseID,
 				"output_index": idx,
 				"item":         st.textItem,
@@ -221,7 +221,7 @@ func (st *streamTranslator) handleChunk(chunk types.OpenAiChatStreamChunk) []typ
 		}
 		st.textBuffer += *delta.Content
 		st.textItem.Content[0]["text"] = st.textBuffer
-		events = append(events, st.makeEvent("response.output_text.delta", map[string]interface{}{
+		events = append(events, st.makeEvent("response.output_text.delta", map[string]any{
 			"response_id":   st.responseID,
 			"item_id":       st.textItem.ID,
 			"output_index":  st.textItemIndex,
@@ -238,7 +238,7 @@ func (st *streamTranslator) finalize() []types.ResponsesStreamEvent {
 
 	type indexedItem struct {
 		index int
-		item  interface{}
+		item  any
 	}
 	var items []indexedItem
 
@@ -267,7 +267,7 @@ func (st *streamTranslator) finalize() []types.ResponsesStreamEvent {
 				Type    *string  `json:"type,omitempty"`
 				Command []string `json:"command,omitempty"`
 			}{
-				Type:    ptr("exec"),
+				Type:    new("exec"),
 				Command: parsed.Command,
 			}
 		}
@@ -278,10 +278,10 @@ func (st *streamTranslator) finalize() []types.ResponsesStreamEvent {
 		return items[i].index < items[j].index
 	})
 
-	output := make([]interface{}, 0, len(items))
+	output := make([]any, 0, len(items))
 	for _, it := range items {
 		output = append(output, it.item)
-		events = append(events, st.makeEvent("response.output_item.done", map[string]interface{}{
+		events = append(events, st.makeEvent("response.output_item.done", map[string]any{
 			"response_id":  st.responseID,
 			"output_index": it.index,
 			"item":         it.item,
@@ -300,8 +300,8 @@ func (st *streamTranslator) finalize() []types.ResponsesStreamEvent {
 		TopP:              st.metadata.TopP,
 		ToolChoice:        st.metadata.ToolChoice,
 		Tools:             st.metadata.Tools,
-		ParallelToolCalls: ptr(true),
-		Store:             ptr(true),
+		ParallelToolCalls: new(true),
+		Store:             new(true),
 		Metadata:          st.metadata.Metadata,
 		Output:            output,
 		Usage: &types.ResponsesUsage{
@@ -320,11 +320,11 @@ func (st *streamTranslator) finalize() []types.ResponsesStreamEvent {
 		resp.Store = st.metadata.Store
 	}
 
-	events = append(events, st.makeEvent("response.completed", map[string]interface{}{"response": resp}))
+	events = append(events, st.makeEvent("response.completed", map[string]any{"response": resp}))
 	return events
 }
 
-func (st *streamTranslator) makeEvent(eventType string, data map[string]interface{}) types.ResponsesStreamEvent {
+func (st *streamTranslator) makeEvent(eventType string, data map[string]any) types.ResponsesStreamEvent {
 	st.seq++
 	ev := types.ResponsesStreamEvent{
 		ID:             utils.MakeId("evt"),

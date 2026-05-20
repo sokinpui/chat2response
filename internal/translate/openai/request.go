@@ -29,10 +29,10 @@ func TranslateRequest(data types.ResponsesRequest, options TranslateRequestOptio
 		})
 	}
 
-	inputItems := []interface{}{}
+	inputItems := []any{}
 	if s, ok := data.Input.(string); ok {
 		inputItems = append(inputItems, s)
-	} else if arr, ok := data.Input.([]interface{}); ok {
+	} else if arr, ok := data.Input.([]any); ok {
 		inputItems = arr
 	}
 
@@ -45,7 +45,7 @@ func TranslateRequest(data types.ResponsesRequest, options TranslateRequestOptio
 			continue
 		}
 
-		item, ok := raw.(map[string]interface{})
+		item, ok := raw.(map[string]any)
 		if !ok {
 			continue
 		}
@@ -66,7 +66,7 @@ func TranslateRequest(data types.ResponsesRequest, options TranslateRequestOptio
 
 	if data.Reasoning != nil && data.Reasoning.Effort != nil {
 		if request.Extra == nil {
-			request.Extra = make(map[string]interface{})
+			request.Extra = make(map[string]any)
 		}
 		request.Extra["reasoning_effort"] = *data.Reasoning.Effort
 	}
@@ -93,14 +93,14 @@ func TranslateRequest(data types.ResponsesRequest, options TranslateRequestOptio
 	return TranslateRequestResult{Request: request}
 }
 
-func buildSystemContent(instructions interface{}) string {
+func buildSystemContent(instructions any) string {
 	if instructions == nil {
 		return ""
 	}
 	if s, ok := instructions.(string); ok {
 		return s
 	}
-	arr, ok := instructions.([]interface{})
+	arr, ok := instructions.([]any)
 	if !ok {
 		return ""
 	}
@@ -111,7 +111,7 @@ func buildSystemContent(instructions interface{}) string {
 			sb.WriteString(s)
 			continue
 		}
-		if m, ok := block.(map[string]interface{}); ok {
+		if m, ok := block.(map[string]any); ok {
 			if text, ok := m["text"].(string); ok {
 				sb.WriteString(text)
 			}
@@ -120,7 +120,7 @@ func buildSystemContent(instructions interface{}) string {
 	return sb.String()
 }
 
-func processInputItem(item map[string]interface{}, messages []types.OpenAiChatMessage, dropImages bool) []types.OpenAiChatMessage {
+func processInputItem(item map[string]any, messages []types.OpenAiChatMessage, dropImages bool) []types.OpenAiChatMessage {
 	itemType, _ := item["type"].(string)
 	if itemType == "" {
 		itemType = "message"
@@ -153,13 +153,13 @@ func processInputItem(item map[string]interface{}, messages []types.OpenAiChatMe
 			content := ""
 			if s, ok := rawContent.(string); ok {
 				content = s
-			} else if arr, ok := rawContent.([]interface{}); ok {
+			} else if arr, ok := rawContent.([]any); ok {
 				for _, part := range arr {
 					if s, ok := part.(string); ok {
 						content += s
 						continue
 					}
-					if m, ok := part.(map[string]interface{}); ok {
+					if m, ok := part.(map[string]any); ok {
 						pType, _ := m["type"].(string)
 						pText, _ := m["text"].(string)
 						if pType == "input_text" || pType == "text" || pType == "output_text" {
@@ -185,28 +185,28 @@ func processInputItem(item map[string]interface{}, messages []types.OpenAiChatMe
 			}
 			if sig, ok := item["thought_signature"].(string); ok && sig != "" {
 				if messages[idx].Extra == nil {
-					messages[idx].Extra = make(map[string]interface{})
+					messages[idx].Extra = make(map[string]any)
 				}
 				messages[idx].Extra["thought_signature"] = sig
 			}
 		} else {
 			if s, ok := rawContent.(string); ok {
 				messages = append(messages, types.OpenAiChatMessage{Role: role, Content: s})
-			} else if arr, ok := rawContent.([]interface{}); ok {
-				contentBlocks := []map[string]interface{}{}
+			} else if arr, ok := rawContent.([]any); ok {
+				contentBlocks := []map[string]any{}
 				for _, part := range arr {
 					if s, ok := part.(string); ok {
-						contentBlocks = append(contentBlocks, map[string]interface{}{"type": "text", "text": s})
+						contentBlocks = append(contentBlocks, map[string]any{"type": "text", "text": s})
 						continue
 					}
-					m, ok := part.(map[string]interface{})
+					m, ok := part.(map[string]any)
 					if !ok {
 						continue
 					}
 					pType, _ := m["type"].(string)
 					if pType == "input_text" || pType == "text" || pType == "output_text" {
 						pText, _ := m["text"].(string)
-						contentBlocks = append(contentBlocks, map[string]interface{}{"type": "text", "text": pText})
+						contentBlocks = append(contentBlocks, map[string]any{"type": "text", "text": pText})
 					} else if pType == "reasoning_text" {
 						pText, _ := m["text"].(string)
 						reasoningContent += pText
@@ -216,17 +216,17 @@ func processInputItem(item map[string]interface{}, messages []types.OpenAiChatMe
 						}
 						url := extractImageUrl(m)
 						if url != "" {
-							contentBlocks = append(contentBlocks, map[string]interface{}{
+							contentBlocks = append(contentBlocks, map[string]any{
 								"type":      "image_url",
-								"image_url": map[string]interface{}{"url": url},
+								"image_url": map[string]any{"url": url},
 							})
 						}
 					} else if pType == "input_file" || pType == "file" {
 						url := extractFileUrl(m)
 						if url != "" {
-							contentBlocks = append(contentBlocks, map[string]interface{}{
+							contentBlocks = append(contentBlocks, map[string]any{
 								"type":      "image_url",
-								"image_url": map[string]interface{}{"url": url},
+								"image_url": map[string]any{"url": url},
 							})
 						}
 					}
@@ -237,7 +237,7 @@ func processInputItem(item map[string]interface{}, messages []types.OpenAiChatMe
 				}
 				if sig, ok := item["thought_signature"].(string); ok && sig != "" {
 					if msg.Extra == nil {
-						msg.Extra = make(map[string]interface{})
+						msg.Extra = make(map[string]any)
 					}
 					msg.Extra["thought_signature"] = sig
 				}
@@ -252,11 +252,11 @@ func processInputItem(item map[string]interface{}, messages []types.OpenAiChatMe
 	if itemType == "reasoning" {
 		content := ""
 		raw := item["content"]
-		if arr, ok := raw.([]interface{}); ok {
+		if arr, ok := raw.([]any); ok {
 			for _, cp := range arr {
 				if s, ok := cp.(string); ok {
 					content += s
-				} else if m, ok := cp.(map[string]interface{}); ok {
+				} else if m, ok := cp.(map[string]any); ok {
 					if text, ok := m["text"].(string); ok {
 						content += text
 					}
@@ -274,7 +274,7 @@ func processInputItem(item map[string]interface{}, messages []types.OpenAiChatMe
 		messages[idx].ReasoningContent = &combined
 		if sig, ok := item["thought_signature"].(string); ok && sig != "" {
 			if messages[idx].Extra == nil {
-				messages[idx].Extra = make(map[string]interface{})
+				messages[idx].Extra = make(map[string]any)
 			}
 			messages[idx].Extra["thought_signature"] = sig
 		}
@@ -291,11 +291,11 @@ func processInputItem(item map[string]interface{}, messages []types.OpenAiChatMe
 	return messages
 }
 
-func extractImageUrl(m map[string]interface{}) string {
+func extractImageUrl(m map[string]any) string {
 	if imgUrl, ok := m["image_url"].(string); ok {
 		return imgUrl
 	}
-	if imgObj, ok := m["image_url"].(map[string]interface{}); ok {
+	if imgObj, ok := m["image_url"].(map[string]any); ok {
 		if url, ok := imgObj["url"].(string); ok {
 			return url
 		}
@@ -320,7 +320,7 @@ func extractImageUrl(m map[string]interface{}) string {
 	return fmt.Sprintf("data:%s;base64,%s", mime, data)
 }
 
-func extractFileUrl(m map[string]interface{}) string {
+func extractFileUrl(m map[string]any) string {
 	data, _ := m["file_data"].(string)
 	if data == "" {
 		data, _ = m["data"].(string)
@@ -341,7 +341,7 @@ func extractFileUrl(m map[string]interface{}) string {
 	return fmt.Sprintf("data:%s;base64,%s", mime, data)
 }
 
-func processToolCall(item map[string]interface{}, messages []types.OpenAiChatMessage, getAssistantIdx func() int) []types.OpenAiChatMessage {
+func processToolCall(item map[string]any, messages []types.OpenAiChatMessage, getAssistantIdx func() int) []types.OpenAiChatMessage {
 	callID, _ := item["call_id"].(string)
 	if callID == "" {
 		callID, _ = item["id"].(string)
@@ -370,7 +370,7 @@ func processToolCall(item map[string]interface{}, messages []types.OpenAiChatMes
 		return messages
 	}
 
-	var args interface{}
+	var args any
 	if v, ok := item["arguments"]; ok {
 		args = v
 	} else if v, ok := item["input"]; ok {
@@ -387,18 +387,18 @@ func processToolCall(item map[string]interface{}, messages []types.OpenAiChatMes
 			}
 			args = map[string]string{"command": cmd, "dir_path": cwd}
 		case "local_shell_call":
-			if action, ok := item["action"].(map[string]interface{}); ok {
-				if exec, ok := action["exec"].(map[string]interface{}); ok {
-					args = map[string]interface{}{
+			if action, ok := item["action"].(map[string]any); ok {
+				if exec, ok := action["exec"].(map[string]any); ok {
+					args = map[string]any{
 						"command":           exec["command"],
 						"working_directory": exec["working_directory"],
 					}
 				}
 			}
 		case "fileChange":
-			if changes, ok := item["changes"].([]interface{}); ok && len(changes) > 0 {
-				if first, ok := changes[0].(map[string]interface{}); ok {
-					args = map[string]interface{}{"file_path": first["path"]}
+			if changes, ok := item["changes"].([]any); ok && len(changes) > 0 {
+				if first, ok := changes[0].(map[string]any); ok {
+					args = map[string]any{"file_path": first["path"]}
 				}
 			}
 		case "web_search_call":
@@ -409,7 +409,7 @@ func processToolCall(item map[string]interface{}, messages []types.OpenAiChatMes
 	}
 
 	if args == nil {
-		args = make(map[string]interface{})
+		args = make(map[string]any)
 	}
 
 	argsStr := ""
@@ -422,10 +422,10 @@ func processToolCall(item map[string]interface{}, messages []types.OpenAiChatMes
 	idx := getAssistantIdx()
 	messages[idx].ToolCalls = append(messages[idx].ToolCalls, types.OpenAiChatToolCall{
 		ID:   &callID,
-		Type: ptr("function"),
+		Type: new("function"),
 		Function: &struct {
-			Name      *string     `json:"name,omitempty"`
-			Arguments interface{} `json:"arguments,omitempty"`
+			Name      *string `json:"name,omitempty"`
+			Arguments any     `json:"arguments,omitempty"`
 		}{
 			Name:      &name,
 			Arguments: argsStr,
@@ -434,7 +434,7 @@ func processToolCall(item map[string]interface{}, messages []types.OpenAiChatMes
 
 	if sig, ok := item["thought_signature"].(string); ok && sig != "" {
 		if messages[idx].Extra == nil {
-			messages[idx].Extra = make(map[string]interface{})
+			messages[idx].Extra = make(map[string]any)
 		}
 		messages[idx].Extra["thought_signature"] = sig
 	}
@@ -450,7 +450,7 @@ func processToolCall(item map[string]interface{}, messages []types.OpenAiChatMes
 	return messages
 }
 
-func processToolOutput(item map[string]interface{}, messages []types.OpenAiChatMessage) []types.OpenAiChatMessage {
+func processToolOutput(item map[string]any, messages []types.OpenAiChatMessage) []types.OpenAiChatMessage {
 	callID, _ := item["call_id"].(string)
 	outputRaw := item["output"]
 	if outputRaw == nil {
@@ -463,11 +463,11 @@ func processToolOutput(item map[string]interface{}, messages []types.OpenAiChatM
 	content := ""
 	if s, ok := outputRaw.(string); ok {
 		content = s
-	} else if arr, ok := outputRaw.([]interface{}); ok {
+	} else if arr, ok := outputRaw.([]any); ok {
 		for _, part := range arr {
 			if s, ok := part.(string); ok {
 				content += s
-			} else if m, ok := part.(map[string]interface{}); ok {
+			} else if m, ok := part.(map[string]any); ok {
 				pType, _ := m["type"].(string)
 				if pType == "input_text" || pType == "text" {
 					if text, ok := m["text"].(string); ok {
@@ -476,7 +476,7 @@ func processToolOutput(item map[string]interface{}, messages []types.OpenAiChatM
 				}
 			}
 		}
-	} else if obj, ok := outputRaw.(map[string]interface{}); ok {
+	} else if obj, ok := outputRaw.(map[string]any); ok {
 		content, _ = obj["content"].(string)
 		if content == "" && obj["success"] == false {
 			content = "Error: Tool execution failed"
@@ -497,8 +497,8 @@ func processToolOutput(item map[string]interface{}, messages []types.OpenAiChatM
 	return messages
 }
 
-func mapTools(tools []types.ResponsesTool) []interface{} {
-	out := []interface{}{}
+func mapTools(tools []types.ResponsesTool) []any {
+	out := []any{}
 	for _, tool := range tools {
 		if tool.Type != "function" {
 			continue
@@ -513,7 +513,7 @@ func mapTools(tools []types.ResponsesTool) []interface{} {
 			continue
 		}
 
-		params := map[string]interface{}{"type": "object"}
+		params := map[string]any{"type": "object"}
 		if tool.Function != nil && tool.Function.Parameters != nil {
 			params = tool.Function.Parameters
 		} else if tool.Parameters != nil {
@@ -530,9 +530,9 @@ func mapTools(tools []types.ResponsesTool) []interface{} {
 		out = append(out, types.OpenAiChatFunctionTool{
 			Type: "function",
 			Function: struct {
-				Name        string                 `json:"name"`
-				Description *string                `json:"description,omitempty"`
-				Parameters  map[string]interface{} `json:"parameters,omitempty"`
+				Name        string         `json:"name"`
+				Description *string        `json:"description,omitempty"`
+				Parameters  map[string]any `json:"parameters,omitempty"`
 			}{
 				Name:        name,
 				Description: &description,
@@ -543,7 +543,7 @@ func mapTools(tools []types.ResponsesTool) []interface{} {
 	return out
 }
 
-func mapToolChoice(choice interface{}) interface{} {
+func mapToolChoice(choice any) any {
 	if choice == nil {
 		return nil
 	}
@@ -552,11 +552,11 @@ func mapToolChoice(choice interface{}) interface{} {
 			return s
 		}
 	}
-	if m, ok := choice.(map[string]interface{}); ok {
+	if m, ok := choice.(map[string]any); ok {
 		if m["type"] == "function" {
-			if fn, ok := m["function"].(map[string]interface{}); ok {
+			if fn, ok := m["function"].(map[string]any); ok {
 				if name, ok := fn["name"].(string); ok {
-					return map[string]interface{}{
+					return map[string]any{
 						"type":     "function",
 						"function": map[string]string{"name": name},
 					}
@@ -651,21 +651,22 @@ func repairToolMessageOrder(messages []types.OpenAiChatMessage) []types.OpenAiCh
 	return result
 }
 
-func isEmpty(value interface{}) bool {
+func isEmpty(value any) bool {
 	if value == nil {
 		return true
 	}
 	switch v := value.(type) {
 	case string:
 		return len(v) == 0
-	case []interface{}:
+	case []any:
 		return len(v) == 0
-	case map[string]interface{}:
+	case map[string]any:
 		return len(v) == 0
 	}
 	return false
 }
 
+//go:fix inline
 func ptr[T any](v T) *T {
-	return &v
+	return new(v)
 }

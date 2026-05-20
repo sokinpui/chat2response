@@ -44,7 +44,7 @@ func TranslateResponse(body types.OpenAiChatResponse, options TranslateResponseO
 		model = *options.Model
 	}
 
-	var output []interface{}
+	var output []any
 	if len(body.Choices) > 0 {
 		msg := body.Choices[0].Message
 		for _, tc := range msg.ToolCalls {
@@ -59,7 +59,7 @@ func TranslateResponse(body types.OpenAiChatResponse, options TranslateResponseO
 				Type:   types.ResponsesItemTypeMessage,
 				Role:   types.OpenAiRoleAssistant,
 				Status: "completed",
-				Content: []map[string]interface{}{
+				Content: []map[string]any{
 					{"type": "output_text", "text": *msg.Content},
 				},
 			})
@@ -141,7 +141,7 @@ func mapToolCallToOutput(tc types.OpenAiChatToolCall) *types.ResponsesOutputFunc
 			Type    *string  `json:"type,omitempty"`
 			Command []string `json:"command,omitempty"`
 		}{
-			Type:    ptr("exec"),
+			Type:    new("exec"),
 			Command: parsed.Command,
 		}
 	}

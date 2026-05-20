@@ -1,6 +1,7 @@
 package anthropic
 
 import (
+	"strings"
 	"time"
 
 	"github.com/sokinpui/chat2response/internal/types"
@@ -62,8 +63,8 @@ func TranslateResponse(body types.AnthropicResponse, options TranslateResponseOp
 	}
 }
 
-func MapOutputItems(content []types.AnthropicContentBlock) []interface{} {
-	var out []interface{}
+func MapOutputItems(content []types.AnthropicContentBlock) []any {
+	var out []any
 	var textChunks []string
 
 	for _, block := range content {
@@ -93,7 +94,7 @@ func MapOutputItems(content []types.AnthropicContentBlock) []interface{} {
 			if shellToolNames[name] {
 				item.Type = types.ResponsesItemTypeLocalShellCall
 				var cmd []string
-				if arr, ok := block.Input["command"].([]interface{}); ok {
+				if arr, ok := block.Input["command"].([]any); ok {
 					for _, v := range arr {
 						if s, ok := v.(string); ok {
 							cmd = append(cmd, s)
@@ -104,7 +105,7 @@ func MapOutputItems(content []types.AnthropicContentBlock) []interface{} {
 					Type    *string  `json:"type,omitempty"`
 					Command []string `json:"command,omitempty"`
 				}{
-					Type:    ptr("exec"),
+					Type:    new("exec"),
 					Command: cmd,
 				}
 			}
@@ -117,28 +118,28 @@ func MapOutputItems(content []types.AnthropicContentBlock) []interface{} {
 			reasoning := types.ResponsesOutputReasoning{
 				ID:      utils.MakeId("rs"),
 				Type:    types.ResponsesItemTypeReasoning,
-				Summary: []interface{}{},
+				Summary: []any{},
 				Content: []types.ResponsesContentPart{
 					{Type: "reasoning_text", Text: &text},
 				},
-				Status: ptr("completed"),
+				Status: new("completed"),
 			}
 			out = append(out, reasoning)
 		}
 	}
 
 	if len(textChunks) > 0 {
-		fullText := ""
+		var fullText strings.Builder
 		for _, chunk := range textChunks {
-			fullText += chunk
+			fullText.WriteString(chunk)
 		}
 		message := types.ResponsesOutputMessage{
 			ID:     utils.MakeId("msg"),
 			Type:   types.ResponsesItemTypeMessage,
 			Role:   "assistant",
 			Status: "completed",
-			Content: []map[string]interface{}{
-				{"type": "output_text", "text": fullText},
+			Content: []map[string]any{
+				{"type": "output_text", "text": fullText.String()},
 			},
 		}
 		out = append(out, message)

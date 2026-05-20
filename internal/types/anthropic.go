@@ -10,9 +10,9 @@ const (
 )
 
 type AnthropicTextBlock struct {
-	Type         string                 `json:"type"`
-	Text         string                 `json:"text"`
-	CacheControl map[string]interface{} `json:"cache_control,omitempty"`
+	Type         string         `json:"type"`
+	Text         string         `json:"text"`
+	CacheControl map[string]any `json:"cache_control,omitempty"`
 }
 
 type AnthropicImageSource struct {
@@ -23,31 +23,31 @@ type AnthropicImageSource struct {
 }
 
 type AnthropicImageBlock struct {
-	Type         string                 `json:"type"`
-	Source       AnthropicImageSource   `json:"source"`
-	CacheControl map[string]interface{} `json:"cache_control,omitempty"`
+	Type         string               `json:"type"`
+	Source       AnthropicImageSource `json:"source"`
+	CacheControl map[string]any       `json:"cache_control,omitempty"`
 }
 
 type AnthropicDocumentBlock struct {
-	Type         string                 `json:"type"`
-	Source       AnthropicImageSource   `json:"source"`
-	CacheControl map[string]interface{} `json:"cache_control,omitempty"`
+	Type         string               `json:"type"`
+	Source       AnthropicImageSource `json:"source"`
+	CacheControl map[string]any       `json:"cache_control,omitempty"`
 }
 
 type AnthropicToolUseBlock struct {
-	Type         string                 `json:"type"`
-	ID           string                 `json:"id"`
-	Name         string                 `json:"name"`
-	Input        map[string]interface{} `json:"input"`
-	CacheControl map[string]interface{} `json:"cache_control,omitempty"`
+	Type         string         `json:"type"`
+	ID           string         `json:"id"`
+	Name         string         `json:"name"`
+	Input        map[string]any `json:"input"`
+	CacheControl map[string]any `json:"cache_control,omitempty"`
 }
 
 type AnthropicToolResultBlock struct {
-	Type         string                 `json:"type"`
-	ToolUseID    string                 `json:"tool_use_id"`
-	Content      interface{}            `json:"content"` // string | AnthropicContentBlock[]
-	IsError      *bool                  `json:"is_error,omitempty"`
-	CacheControl map[string]interface{} `json:"cache_control,omitempty"`
+	Type         string         `json:"type"`
+	ToolUseID    string         `json:"tool_use_id"`
+	Content      any            `json:"content"` // string | AnthropicContentBlock[]
+	IsError      *bool          `json:"is_error,omitempty"`
+	CacheControl map[string]any `json:"cache_control,omitempty"`
 }
 
 type AnthropicThinkingBlock struct {
@@ -57,29 +57,29 @@ type AnthropicThinkingBlock struct {
 }
 
 type AnthropicContentBlock struct {
-	Type         string                 `json:"type"`
-	Text         *string                `json:"text,omitempty"`
-	Source       *AnthropicImageSource  `json:"source,omitempty"`
-	ID           *string                `json:"id,omitempty"`
-	Name         *string                `json:"name,omitempty"`
-	Input        map[string]interface{} `json:"input,omitempty"`
-	ToolUseID    *string                `json:"tool_use_id,omitempty"`
-	Content      interface{}            `json:"content,omitempty"`
-	IsError      *bool                  `json:"is_error,omitempty"`
-	Thinking     *string                `json:"thinking,omitempty"`
-	Signature    *string                `json:"signature,omitempty"`
-	CacheControl map[string]interface{} `json:"cache_control,omitempty"`
+	Type         string                `json:"type"`
+	Text         *string               `json:"text,omitempty"`
+	Source       *AnthropicImageSource `json:"source,omitempty"`
+	ID           *string               `json:"id,omitempty"`
+	Name         *string               `json:"name,omitempty"`
+	Input        map[string]any        `json:"input,omitempty"`
+	ToolUseID    *string               `json:"tool_use_id,omitempty"`
+	Content      any                   `json:"content,omitempty"`
+	IsError      *bool                 `json:"is_error,omitempty"`
+	Thinking     *string               `json:"thinking,omitempty"`
+	Signature    *string               `json:"signature,omitempty"`
+	CacheControl map[string]any        `json:"cache_control,omitempty"`
 }
 
 type AnthropicMessage struct {
-	Role    string      `json:"role"`    // "user" | "assistant"
-	Content interface{} `json:"content"` // AnthropicContentBlock[] | string
+	Role    string `json:"role"`    // "user" | "assistant"
+	Content any    `json:"content"` // AnthropicContentBlock[] | string
 }
 
 type AnthropicTool struct {
-	Name        string                 `json:"name"`
-	Description *string                `json:"description,omitempty"`
-	InputSchema map[string]interface{} `json:"input_schema"`
+	Name        string         `json:"name"`
+	Description *string        `json:"description,omitempty"`
+	InputSchema map[string]any `json:"input_schema"`
 }
 
 type AnthropicToolChoice struct {
@@ -95,16 +95,16 @@ type AnthropicThinkingConfig struct {
 type AnthropicRequest struct {
 	Model       string                   `json:"model"`
 	Messages    []AnthropicMessage       `json:"messages"`
-	System      interface{}              `json:"system,omitempty"` // string | AnthropicTextBlock[]
+	System      any                      `json:"system,omitempty"` // string | AnthropicTextBlock[]
 	MaxTokens   int                      `json:"max_tokens"`
 	Temperature *float64                 `json:"temperature,omitempty"`
 	TopP        *float64                 `json:"top_p,omitempty"`
-	Tools       []interface{}            `json:"tools,omitempty"`
+	Tools       []any                    `json:"tools,omitempty"`
 	ToolChoice  *AnthropicToolChoice     `json:"tool_choice,omitempty"`
-	Metadata    map[string]interface{}   `json:"metadata,omitempty"`
+	Metadata    map[string]any           `json:"metadata,omitempty"`
 	Thinking    *AnthropicThinkingConfig `json:"thinking,omitempty"`
 	Stream      *bool                    `json:"stream,omitempty"`
-	Extra       map[string]interface{}   `json:"-"`
+	Extra       map[string]any           `json:"-"`
 }
 
 type AnthropicUsage struct {
@@ -130,6 +130,6 @@ type AnthropicStreamEvent struct {
 	Message      *AnthropicResponse     `json:"message,omitempty"`
 	Index        *int                   `json:"index,omitempty"`
 	ContentBlock *AnthropicContentBlock `json:"content_block,omitempty"`
-	Delta        map[string]interface{} `json:"delta,omitempty"`
+	Delta        map[string]any         `json:"delta,omitempty"`
 	Usage        *AnthropicUsage        `json:"usage,omitempty"`
 }

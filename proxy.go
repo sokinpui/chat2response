@@ -62,7 +62,7 @@ func NewProxyHandler(opts proxy.ProxyOptions) http.HandlerFunc {
 func jsonError(w http.ResponseWriter, status int, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	json.NewEncoder(w).Encode(map[string]any{
 		"error": map[string]string{
 			"message": message,
 			"type":    "proxy_error",
