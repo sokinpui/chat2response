@@ -3,9 +3,9 @@ package server
 import (
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 
+	"github.com/spf13/cobra"
 	"github.com/sokinpui/chat2response/pkg/proxy"
 	"github.com/sokinpui/chat2response/pkg/types"
 	"github.com/sokinpui/chat2response/pkg/utils"
@@ -23,99 +23,9 @@ type CliArgs struct {
 	Cors           bool
 	NoCors         bool
 	DropImages     bool
-	Help           bool
 }
 
-func ParseArgs(argv []string) CliArgs {
-	out := CliArgs{Cors: true}
-	for i := 0; i < len(argv); i++ {
-		arg := argv[i]
-		take := func() string {
-			if i+1 < len(argv) {
-				i++
-				return argv[i]
-			}
-			return ""
-		}
-
-		switch {
-		case arg == "-h" || arg == "--help":
-			out.Help = true
-		case arg == "-p" || arg == "--port":
-			out.Port, _ = strconv.Atoi(take())
-		case arg == "--host":
-			out.Host = take()
-		case arg == "--upstream-format":
-			out.UpstreamFormat = take()
-		case arg == "--base-url":
-			out.BaseURL = take()
-		case arg == "--config":
-			out.Config = take()
-		case arg == "--api-version":
-			out.APIVersion = take()
-		case arg == "--apikey":
-			out.APIKey = take()
-		case arg == "--model":
-			out.Model = take()
-		case arg == "--drop-images":
-			out.DropImages = true
-		case arg == "--no-cors":
-			out.NoCors = true
-			out.Cors = false
-		case strings.HasPrefix(arg, "--upstream-format="):
-			out.UpstreamFormat = arg[len("--upstream-format="):]
-		case strings.HasPrefix(arg, "--port="):
-			out.Port, _ = strconv.Atoi(arg[len("--port="):])
-		case strings.HasPrefix(arg, "--host="):
-			out.Host = arg[len("--host="):]
-		case strings.HasPrefix(arg, "--base-url="):
-			out.BaseURL = arg[len("--base-url="):]
-		case strings.HasPrefix(arg, "--api-version="):
-			out.APIVersion = arg[len("--api-version="):]
-		case strings.HasPrefix(arg, "--apikey="):
-			out.APIKey = arg[len("--apikey="):]
-		case strings.HasPrefix(arg, "--model="):
-			out.Model = arg[len("--model="):]
-		case strings.HasPrefix(arg, "--config="):
-			out.Config = arg[len("--config="):]
-		default:
-			if strings.HasPrefix(arg, "-") {
-				fmt.Printf("Unknown argument: %s\n", arg)
-				out.Help = true
-			}
-		}
-	}
-	return out
-}
-
-func PrintHelp() {
-	fmt.Print(`codeproxy - local Responses API proxy (Go version)
-
-Usage:
-  codeproxy --base-url <url> [options]
-  codeproxy --config <file> [options]
-
-Options:
-  --base-url <url>         Upstream endpoint URL (required when not using --config)
-  --upstream-format <fmt>  Upstream API format: anthropic | openai-chat
-                           (optional; inferred from --base-url when omitted)
-  --config <file>          Use a config file instead of CLI flags
-  --host <host>            Bind host (default: 127.0.0.1)
-  -p, --port <port>        Bind port (default: 8787; 0 = random)
-  --api-version <ver>      Override anthropic-version header (anthropic only)
-  --apikey <key>           Override upstream Authorization: Bearer <key>
-  --model <name>           Override the model field in incoming requests
-  --drop-images            Drop images from user messages
-  --no-cors                Disable CORS headers
-  -h, --help               Show help
-
-Examples:
-  codeproxy --base-url https://api.anthropic.com/v1/messages
-  codeproxy --config config.json
-`)
-}
-
-func LoadConfigAndApplyOverrides(configPath string, overrides CliArgs) (proxy.ProxyOptions, string, int, bool) {
+func loadConfigAndApplyOverrides(configPath string, overrides CliArgs) (proxy.ProxyOptions, string, int, bool) {
 	config, err := utils.LoadConfigFile(configPath)
 	if err != nil {
 		fmt.Printf("Failed to load config: %v\n", err)
@@ -145,7 +55,7 @@ func LoadConfigAndApplyOverrides(configPath string, overrides CliArgs) (proxy.Pr
 		case float64:
 			port = int(v)
 		case string:
-			port, _ = strconv.Atoi(v)
+			fmt.Sscanf(v, "%d", &port)
 		}
 	}
 	if overrides.Port != 0 {
@@ -224,50 +134,63 @@ func LoadConfigAndApplyOverrides(configPath string, overrides CliArgs) (proxy.Pr
 	return opts, host, port, cors
 }
 
-func Main(args []string) {
-	cliArgs := ParseArgs(args[1:])
+func Execute() {
+	args := CliArgs{}
+	rootCmd := &cobra.Command{
+		Use:   "chat2response",
+		Short: "Adapter for old standard Chat Completions format API and new Responses format API",
+		Example: `  chat2response --base-url https://api.anthropic.com/v1/messages
+  chat2response --config config.json`,
+		Run: func(cmd *cobra.Command, _ []string) {
+			var opts proxy.ProxyOptions
+			host := "127.0.0.1"
+			port := 8787
+			cors := !args.NoCors
 
-	if cliArgs.Help {
-		PrintHelp()
-		return
+			if args.Config != "" {
+				opts, host, port, cors = loadConfigAndApplyOverrides(args.Config, args)
+			} else if args.BaseURL != "" {
+				opts = proxy.ProxyOptions{
+					UpstreamFormat: types.UpstreamFormat(args.UpstreamFormat),
+					BaseURL:        args.BaseURL,
+					APIVersion:     args.APIVersion,
+					Model:          args.Model,
+					DropImages:     args.DropImages,
+				}
+				if args.APIKey != "" {
+					opts.DefaultHeaders = map[string]string{
+						"authorization": "Bearer " + args.APIKey,
+					}
+				}
+				if args.Host != "" {
+					host = args.Host
+				}
+				if args.Port != 0 {
+					port = args.Port
+				}
+			} else {
+				cmd.Help()
+				os.Exit(1)
+			}
+
+			srv := NewServer(opts, host, port, cors)
+			srv.Start()
+		},
 	}
 
-	var opts proxy.ProxyOptions
-	host := "127.0.0.1"
-	port := 8787
-	cors := true
+	flags := rootCmd.Flags()
+	flags.StringVar(&args.BaseURL, "base-url", "", "Upstream endpoint URL")
+	flags.StringVar(&args.UpstreamFormat, "upstream-format", "", "Upstream API format: anthropic | openai-chat")
+	flags.StringVar(&args.Config, "config", "", "Use a config file instead of CLI flags")
+	flags.StringVar(&args.Host, "host", "127.0.0.1", "Bind host")
+	flags.IntVarP(&args.Port, "port", "p", 8787, "Bind port (0 = random)")
+	flags.StringVar(&args.APIVersion, "api-version", "", "Override anthropic-version header")
+	flags.StringVar(&args.APIKey, "apikey", "", "Override upstream Authorization header")
+	flags.StringVar(&args.Model, "model", "", "Override the model field in incoming requests")
+	flags.BoolVar(&args.DropImages, "drop-images", false, "Drop images from user messages")
+	flags.BoolVar(&args.NoCors, "no-cors", false, "Disable CORS headers")
 
-	if cliArgs.Config != "" {
-		opts, host, port, cors = LoadConfigAndApplyOverrides(cliArgs.Config, cliArgs)
-	} else if cliArgs.BaseURL != "" {
-		opts = proxy.ProxyOptions{
-			UpstreamFormat: types.UpstreamFormat(cliArgs.UpstreamFormat),
-			BaseURL:        cliArgs.BaseURL,
-			APIVersion:     cliArgs.APIVersion,
-			Model:          cliArgs.Model,
-			DropImages:     cliArgs.DropImages,
-		}
-		if cliArgs.APIKey != "" {
-			opts.DefaultHeaders = map[string]string{
-				"authorization": "Bearer " + cliArgs.APIKey,
-			}
-		}
-		if cliArgs.Host != "" {
-			host = cliArgs.Host
-		}
-		if cliArgs.Port != 0 {
-			port = cliArgs.Port
-		}
-		if cliArgs.NoCors {
-			cors = false
-		}
-	} else {
-		fmt.Println("Error: Either --config <file> or --base-url <url> is required")
-		fmt.Println("")
-		PrintHelp()
+	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
-
-	srv := NewServer(opts, host, port, cors)
-	srv.Start()
 }
