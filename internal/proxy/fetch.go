@@ -55,7 +55,7 @@ func HandleResponses(ctx context.Context, req types.ResponsesRequest, opts Proxy
 		streaming = *req.Stream
 	}
 
-	upstreamBody, metadata := buildUpstreamBody(req, format, opts)
+	upstreamBody, metadata := buildUpstreamBody(req, format, streaming, opts)
 	resolvedUrl := normalizeBaseUrl(opts.BaseURL, format)
 
 	bodyBytes, err := json.Marshal(upstreamBody)
@@ -180,11 +180,12 @@ func applyHeaders(req *http.Request, format types.UpstreamFormat, opts ProxyOpti
 	}
 }
 
-func buildUpstreamBody(req types.ResponsesRequest, format types.UpstreamFormat, opts ProxyOptions) (any, anthropic.ResponsesStreamMetadata) {
+func buildUpstreamBody(req types.ResponsesRequest, format types.UpstreamFormat, streaming bool, opts ProxyOptions) (any, anthropic.ResponsesStreamMetadata) {
 	if format == types.UpstreamFormatAnthropic {
 		res := anthropic.TranslateRequest(req, anthropic.TranslateRequestOptions{
 			ReasoningBudgets: nil,
 		})
+		res.Request.Stream = &streaming
 
 		if opts.Thinking != nil {
 			if cfg, ok := opts.Thinking.(*types.AnthropicThinkingConfig); ok {
@@ -207,6 +208,14 @@ func buildUpstreamBody(req types.ResponsesRequest, format types.UpstreamFormat, 
 	res := openai.TranslateRequest(req, openai.TranslateRequestOptions{
 		DropImages: opts.DropImages,
 	})
+	res.Request.Stream = &streaming
+
+	if streaming {
+		if res.Request.Extra == nil {
+			res.Request.Extra = make(map[string]any)
+		}
+		res.Request.Extra["stream_options"] = map[string]any{"include_usage": true}
+	}
 
 	if opts.ReasoningEffort != "" {
 		if res.Request.Extra == nil {

@@ -126,14 +126,6 @@ func processInputItem(item map[string]any, messages []types.OpenAiChatMessage, d
 		itemType = "message"
 	}
 
-	getLastAssistantIdx := func() int {
-		if len(messages) > 0 && messages[len(messages)-1].Role == types.OpenAiRoleAssistant {
-			return len(messages) - 1
-		}
-		messages = append(messages, types.OpenAiChatMessage{Role: types.OpenAiRoleAssistant, Content: nil})
-		return len(messages) - 1
-	}
-
 	if itemType == "message" || itemType == "agentMessage" {
 		role, _ := item["role"].(string)
 		if role == "" {
@@ -170,7 +162,8 @@ func processInputItem(item map[string]any, messages []types.OpenAiChatMessage, d
 					}
 				}
 			}
-			idx := getLastAssistantIdx()
+			var idx int
+			messages, idx = ensureLastAssistant(messages)
 			if content != "" {
 				current, _ := messages[idx].Content.(string)
 				messages[idx].Content = current + content
@@ -265,7 +258,8 @@ func processInputItem(item map[string]any, messages []types.OpenAiChatMessage, d
 		} else if s, ok := raw.(string); ok {
 			content = s
 		}
-		idx := getLastAssistantIdx()
+		var idx int
+		messages, idx = ensureLastAssistant(messages)
 		current := ""
 		if messages[idx].ReasoningContent != nil {
 			current = *messages[idx].ReasoningContent
@@ -283,7 +277,7 @@ func processInputItem(item map[string]any, messages []types.OpenAiChatMessage, d
 
 	switch itemType {
 	case "function_call", "commandExecution", "local_shell_call", "fileChange", "custom_tool_call", "web_search_call":
-		return processToolCall(item, messages, getLastAssistantIdx)
+		return processToolCall(item, messages)
 	case "function_call_output", "commandExecutionOutput", "fileChangeOutput", "custom_tool_call_output":
 		return processToolOutput(item, messages)
 	}
@@ -341,7 +335,15 @@ func extractFileUrl(m map[string]any) string {
 	return fmt.Sprintf("data:%s;base64,%s", mime, data)
 }
 
-func processToolCall(item map[string]any, messages []types.OpenAiChatMessage, getAssistantIdx func() int) []types.OpenAiChatMessage {
+func ensureLastAssistant(messages []types.OpenAiChatMessage) ([]types.OpenAiChatMessage, int) {
+	if len(messages) > 0 && messages[len(messages)-1].Role == types.OpenAiRoleAssistant {
+		return messages, len(messages) - 1
+	}
+	messages = append(messages, types.OpenAiChatMessage{Role: types.OpenAiRoleAssistant, Content: nil})
+	return messages, len(messages) - 1
+}
+
+func processToolCall(item map[string]any, messages []types.OpenAiChatMessage) []types.OpenAiChatMessage {
 	callID, _ := item["call_id"].(string)
 	if callID == "" {
 		callID, _ = item["id"].(string)
@@ -419,7 +421,8 @@ func processToolCall(item map[string]any, messages []types.OpenAiChatMessage, ge
 		argsStr = utils.JsonStringifySafe(args)
 	}
 
-	idx := getAssistantIdx()
+	var idx int
+	messages, idx = ensureLastAssistant(messages)
 	messages[idx].ToolCalls = append(messages[idx].ToolCalls, types.OpenAiChatToolCall{
 		ID:   &callID,
 		Type: new("function"),

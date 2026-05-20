@@ -1,5 +1,7 @@
 package types
 
+import "encoding/json"
+
 const (
 	AnthropicBlockTypeText       = "text"
 	AnthropicBlockTypeImage      = "image"
@@ -132,4 +134,21 @@ type AnthropicStreamEvent struct {
 	ContentBlock *AnthropicContentBlock `json:"content_block,omitempty"`
 	Delta        map[string]any         `json:"delta,omitempty"`
 	Usage        *AnthropicUsage        `json:"usage,omitempty"`
+}
+
+func (r AnthropicRequest) MarshalJSON() ([]byte, error) {
+	type Alias AnthropicRequest
+	b, err := json.Marshal((Alias)(r))
+	if err != nil {
+		return nil, err
+	}
+	if len(r.Extra) == 0 {
+		return b, nil
+	}
+	var m map[string]any
+	json.Unmarshal(b, &m)
+	for k, v := range r.Extra {
+		m[k] = v
+	}
+	return json.Marshal(m)
 }

@@ -1,5 +1,7 @@
 package types
 
+import "encoding/json"
+
 const (
 	ResponsesItemTypeMessage                = "message"
 	ResponsesItemTypeReasoning              = "reasoning"
@@ -170,4 +172,38 @@ type ResponsesStreamEvent struct {
 	CreatedAt      int64          `json:"created_at"`
 	SequenceNumber int            `json:"sequence_number"`
 	Extra          map[string]any `json:"-"`
+}
+
+func (r ResponsesResponse) MarshalJSON() ([]byte, error) {
+	type Alias ResponsesResponse
+	b, err := json.Marshal((Alias)(r))
+	if err != nil {
+		return nil, err
+	}
+	if len(r.Extra) == 0 {
+		return b, nil
+	}
+	var m map[string]any
+	json.Unmarshal(b, &m)
+	for k, v := range r.Extra {
+		m[k] = v
+	}
+	return json.Marshal(m)
+}
+
+func (e ResponsesStreamEvent) MarshalJSON() ([]byte, error) {
+	type Alias ResponsesStreamEvent
+	b, err := json.Marshal((Alias)(e))
+	if err != nil {
+		return nil, err
+	}
+	if len(e.Extra) == 0 {
+		return b, nil
+	}
+	var m map[string]any
+	json.Unmarshal(b, &m)
+	for k, v := range e.Extra {
+		m[k] = v
+	}
+	return json.Marshal(m)
 }

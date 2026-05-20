@@ -1,5 +1,7 @@
 package types
 
+import "encoding/json"
+
 const (
 	OpenAiRoleSystem    = "system"
 	OpenAiRoleUser      = "user"
@@ -124,4 +126,38 @@ type OpenAiChatStreamChunk struct {
 	Choices []OpenAiChatStreamChoice `json:"choices,omitempty"`
 	Usage   *OpenAiChatUsage         `json:"usage,omitempty"`
 	Extra   map[string]any           `json:"-"`
+}
+
+func (r OpenAiChatRequest) MarshalJSON() ([]byte, error) {
+	type Alias OpenAiChatRequest
+	b, err := json.Marshal((Alias)(r))
+	if err != nil {
+		return nil, err
+	}
+	if len(r.Extra) == 0 {
+		return b, nil
+	}
+	var m map[string]any
+	json.Unmarshal(b, &m)
+	for k, v := range r.Extra {
+		m[k] = v
+	}
+	return json.Marshal(m)
+}
+
+func (m OpenAiChatMessage) MarshalJSON() ([]byte, error) {
+	type Alias OpenAiChatMessage
+	b, err := json.Marshal((Alias)(m))
+	if err != nil {
+		return nil, err
+	}
+	if len(m.Extra) == 0 {
+		return b, nil
+	}
+	var res map[string]any
+	json.Unmarshal(b, &res)
+	for k, v := range m.Extra {
+		res[k] = v
+	}
+	return json.Marshal(res)
 }
