@@ -31,6 +31,11 @@ func LoadConfigFile(searchFrom string) (*types.ConfigFile, error) {
 		return nil, err
 	}
 
+	// Ensure Version and CurrentUpstream defaults if missing
+	if config.Version == "" {
+		config.Version = "1.0"
+	}
+
 	return &config, nil
 }
 
