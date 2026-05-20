@@ -3,7 +3,6 @@ package utils
 import (
 	"bufio"
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"strings"
@@ -20,7 +19,7 @@ func ParseSseStream(reader io.Reader) <-chan SseMessage {
 	go func() {
 		defer close(ch)
 		scanner := bufio.NewScanner(reader)
-		
+
 		// SSE blocks are separated by double newlines
 		split := func(data []byte, atEOF bool) (advance int, token []byte, err error) {
 			if atEOF && len(data) == 0 {

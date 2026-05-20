@@ -1,7 +1,6 @@
 package anthropic
 
 import (
-	"fmt"
 	"sort"
 	"time"
 
@@ -41,10 +40,10 @@ type streamTranslator struct {
 	outCounter int
 	blocks     map[int]*blockState
 
-	inputTokens          int
-	outputTokens         int
-	cacheCreationTokens  int
-	cacheReadTokens      int
+	inputTokens         int
+	outputTokens        int
+	cacheCreationTokens int
+	cacheReadTokens     int
 
 	textItem      *types.ResponsesOutputMessage
 	textItemIndex int

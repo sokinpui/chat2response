@@ -70,7 +70,7 @@ func ValidateConfig(config *types.ConfigFile) error {
 		return errors.New("config must have a currentUpstream string")
 	}
 
-	upstream, ok := config.Upstreams[config.CurrentUpstream]
+	_, ok := config.Upstreams[config.CurrentUpstream]
 	if !ok {
 		return fmt.Errorf("currentUpstream %q not found in upstreams", config.CurrentUpstream)
 	}

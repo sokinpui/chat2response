@@ -1,7 +1,6 @@
 package anthropic
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/sokinpui/chat2response/internal/types"

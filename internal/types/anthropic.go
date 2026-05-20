@@ -72,7 +72,7 @@ type AnthropicContentBlock struct {
 }
 
 type AnthropicMessage struct {
-	Role    string      `json:"role"` // "user" | "assistant"
+	Role    string      `json:"role"`    // "user" | "assistant"
 	Content interface{} `json:"content"` // AnthropicContentBlock[] | string
 }
 
@@ -93,18 +93,18 @@ type AnthropicThinkingConfig struct {
 }
 
 type AnthropicRequest struct {
-	Model        string                   `json:"model"`
-	Messages     []AnthropicMessage       `json:"messages"`
-	System       interface{}              `json:"system,omitempty"` // string | AnthropicTextBlock[]
-	MaxTokens    int                      `json:"max_tokens"`
-	Temperature  *float64                 `json:"temperature,omitempty"`
-	TopP         *float64                 `json:"top_p,omitempty"`
-	Tools        []interface{}            `json:"tools,omitempty"`
-	ToolChoice   *AnthropicToolChoice     `json:"tool_choice,omitempty"`
-	Metadata     map[string]interface{}   `json:"metadata,omitempty"`
-	Thinking     *AnthropicThinkingConfig `json:"thinking,omitempty"`
-	Stream       *bool                    `json:"stream,omitempty"`
-	Extra        map[string]interface{}   `json:"-"`
+	Model       string                   `json:"model"`
+	Messages    []AnthropicMessage       `json:"messages"`
+	System      interface{}              `json:"system,omitempty"` // string | AnthropicTextBlock[]
+	MaxTokens   int                      `json:"max_tokens"`
+	Temperature *float64                 `json:"temperature,omitempty"`
+	TopP        *float64                 `json:"top_p,omitempty"`
+	Tools       []interface{}            `json:"tools,omitempty"`
+	ToolChoice  *AnthropicToolChoice     `json:"tool_choice,omitempty"`
+	Metadata    map[string]interface{}   `json:"metadata,omitempty"`
+	Thinking    *AnthropicThinkingConfig `json:"thinking,omitempty"`
+	Stream      *bool                    `json:"stream,omitempty"`
+	Extra       map[string]interface{}   `json:"-"`
 }
 
 type AnthropicUsage struct {

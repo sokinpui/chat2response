@@ -4,12 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
-	"time"
 
 	"github.com/sokinpui/chat2response/internal/translate/anthropic"
 	"github.com/sokinpui/chat2response/internal/translate/openai"
@@ -274,7 +272,7 @@ func handleStreamResponse(resp *http.Response, model string, format types.Upstre
 		})
 	} else {
 		events = openai.TranslateStream(sseChan, openai.TranslateStreamOptions{
-			Model: &model,
+			Model:           &model,
 			RequestMetadata: (*openai.ResponsesStreamMetadata)(&metadata),
 		})
 	}
