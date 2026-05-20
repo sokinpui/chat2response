@@ -30,7 +30,7 @@ func Execute() {
 		Run: func(cmd *cobra.Command, _ []string) {
 			var opts proxy.ProxyOptions
 			host := "127.0.0.1"
-			port := 8787
+			port := 9002
 			cors := !args.NoCors
 
 			if args.BaseURL != "" {
@@ -66,7 +66,7 @@ func Execute() {
 	flags.StringVar(&args.BaseURL, "base-url", "", "Upstream endpoint URL")
 	flags.StringVar(&args.UpstreamFormat, "upstream-format", "", "Upstream API format: anthropic | openai-chat")
 	flags.StringVar(&args.Host, "host", "127.0.0.1", "Bind host")
-	flags.IntVarP(&args.Port, "port", "p", 8787, "Bind port (0 = random)")
+	flags.IntVarP(&args.Port, "port", "p", 9002, "Bind port (0 = random)")
 	flags.StringVar(&args.APIVersion, "api-version", "", "Override anthropic-version header")
 	flags.StringVar(&args.APIKey, "apikey", "", "Override upstream Authorization header")
 	flags.StringVar(&args.Model, "model", "", "Override the model field in incoming requests")
