@@ -1,1 +1,1 @@
-I start this project with hope to use codex with any `/chat/completions` compatible endpoints.
+Adapter for old standart Chat Completions format API and new Responses format API
