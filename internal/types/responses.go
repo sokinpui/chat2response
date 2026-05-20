@@ -136,6 +136,14 @@ type ResponsesUsage struct {
 	} `json:"input_tokens_details,omitempty"`
 }
 
+type CacheStats struct {
+	CachedTokens        int `json:"cached_tokens"`
+	CacheCreationTokens int `json:"cache_creation_tokens"`
+	InputTokens         int `json:"input_tokens"`
+	OutputTokens        int `json:"output_tokens"`
+	TotalTokens         int `json:"total_tokens"`
+}
+
 type ResponsesResponse struct {
 	ID                 string                 `json:"id"`
 	Object             string                 `json:"object"` // "response"
