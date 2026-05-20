@@ -64,13 +64,6 @@ func TranslateRequest(data types.ResponsesRequest, options TranslateRequestOptio
 		request.TopP = data.TopP
 	}
 
-	if data.Reasoning != nil && data.Reasoning.Effort != nil {
-		if request.Extra == nil {
-			request.Extra = make(map[string]any)
-		}
-		request.Extra["reasoning_effort"] = *data.Reasoning.Effort
-	}
-
 	maxTokens := options.DefaultMaxTokens
 	if data.MaxOutputTokens != nil && *data.MaxOutputTokens > 0 {
 		maxTokens = data.MaxOutputTokens

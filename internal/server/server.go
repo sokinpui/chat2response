@@ -120,11 +120,6 @@ func (s *Server) handleRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
-	if s.opts.TimeoutMs > 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, time.Duration(s.opts.TimeoutMs)*time.Millisecond)
-		defer cancel()
-	}
 
 	resp, err := proxy.HandleResponses(ctx, req, opts)
 

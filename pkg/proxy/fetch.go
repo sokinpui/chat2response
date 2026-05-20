@@ -33,22 +33,9 @@ type ProxyOptions struct {
 	HTTPClient      *http.Client
 	DropImages      bool
 	OnCacheStats    func(stats types.CacheStats)
-	ReasoningEffort string
-	Thinking        any
-	TimeoutMs       int
-	Fallback        *ProxyOptions
 }
 
 func HandleResponses(ctx context.Context, req types.ResponsesRequest, opts ProxyOptions) (*http.Response, error) {
-	if opts.DropImages && opts.Fallback != nil && lastUserMessageHasImage(req) {
-		fb := opts.Fallback
-		fb.Fallback = nil
-		if fb.Model != "" {
-			req.Model = fb.Model
-		}
-		return HandleResponses(ctx, req, *fb)
-	}
-
 	format := resolveFormat(opts)
 	streaming := false
 	if req.Stream != nil {
@@ -182,16 +169,8 @@ func applyHeaders(req *http.Request, format types.UpstreamFormat, opts ProxyOpti
 
 func buildUpstreamBody(req types.ResponsesRequest, format types.UpstreamFormat, streaming bool, opts ProxyOptions) (any, anthropic.ResponsesStreamMetadata) {
 	if format == types.UpstreamFormatAnthropic {
-		res := anthropic.TranslateRequest(req, anthropic.TranslateRequestOptions{
-			ReasoningBudgets: nil,
-		})
+		res := anthropic.TranslateRequest(req, anthropic.TranslateRequestOptions{})
 		res.Request.Stream = &streaming
-
-		if opts.Thinking != nil {
-			if cfg, ok := opts.Thinking.(*types.AnthropicThinkingConfig); ok {
-				res.Request.Thinking = cfg
-			}
-		}
 
 		metadata := anthropic.ResponsesStreamMetadata{
 			Temperature: req.Temperature,
@@ -215,13 +194,6 @@ func buildUpstreamBody(req types.ResponsesRequest, format types.UpstreamFormat, 
 			res.Request.Extra = make(map[string]any)
 		}
 		res.Request.Extra["stream_options"] = map[string]any{"include_usage": true}
-	}
-
-	if opts.ReasoningEffort != "" {
-		if res.Request.Extra == nil {
-			res.Request.Extra = make(map[string]any)
-		}
-		res.Request.Extra["reasoning_effort"] = opts.ReasoningEffort
 	}
 
 	metadata := anthropic.ResponsesStreamMetadata{
@@ -340,38 +312,6 @@ func extractCacheStats(usage *types.ResponsesUsage) types.CacheStats {
 		}
 	}
 	return stats
-}
-
-func lastUserMessageHasImage(req types.ResponsesRequest) bool {
-	input, ok := req.Input.([]any)
-	if !ok {
-		return false
-	}
-
-	for i := len(input) - 1; i >= 0; i-- {
-		item, ok := input[i].(map[string]any)
-		if !ok || item["role"] != "user" {
-			continue
-		}
-
-		content, ok := item["content"].([]any)
-		if !ok {
-			return false
-		}
-
-		for _, part := range content {
-			p, ok := part.(map[string]any)
-			if !ok {
-				continue
-			}
-			t := p["type"]
-			if t == "input_image" || t == "image" || t == "image_url" {
-				return true
-			}
-		}
-		return false
-	}
-	return false
 }
 
 func IsResponsesEndpoint(r *http.Request) bool {

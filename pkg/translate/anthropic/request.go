@@ -1,7 +1,6 @@
 package anthropic
 
 import (
-	"maps"
 	"slices"
 	"strings"
 
@@ -16,17 +15,8 @@ var anthropicBuiltinToolTypes = map[string]bool{
 	"bash_20250124":         true,
 }
 
-var defaultReasoningBudgets = map[string]int{
-	"minimal": 1024,
-	"low":     4096,
-	"medium":  16384,
-	"high":    32768,
-	"xhigh":   65536,
-}
-
 type TranslateRequestOptions struct {
 	DefaultMaxTokens *int
-	ReasoningBudgets map[string]int
 }
 
 type TranslateRequestResult struct {
@@ -90,11 +80,6 @@ func TranslateRequest(data types.ResponsesRequest, options TranslateRequestOptio
 
 	if data.Metadata != nil {
 		request.Metadata = data.Metadata
-	}
-
-	thinking := mapThinking(data, maxTokens, options.ReasoningBudgets)
-	if thinking != nil {
-		request.Thinking = thinking
 	}
 
 	return TranslateRequestResult{
@@ -547,35 +532,6 @@ func mapToolChoice(choice any) *types.AnthropicToolChoice {
 		}
 	}
 	return &types.AnthropicToolChoice{Type: "auto"}
-}
-
-func mapThinking(data types.ResponsesRequest, maxTokens int, overrides map[string]int) *types.AnthropicThinkingConfig {
-	if data.Reasoning == nil || data.Reasoning.Effort == nil {
-		return nil
-	}
-	effort := *data.Reasoning.Effort
-	if effort == "minimal" {
-		return nil
-	}
-
-	budgets := make(map[string]int)
-	maps.Copy(budgets, defaultReasoningBudgets)
-	maps.Copy(budgets, overrides)
-
-	budget, ok := budgets[effort]
-	if !ok {
-		budget = defaultReasoningBudgets["medium"]
-	}
-
-	clamped := min(maxTokens-1024, budget)
-	if clamped < 1024 {
-		clamped = 1024
-	}
-
-	return &types.AnthropicThinkingConfig{
-		Type:         "enabled",
-		BudgetTokens: &clamped,
-	}
 }
 
 func repairToolAdjacency(messages []types.AnthropicMessage) []types.AnthropicMessage {
