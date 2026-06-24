@@ -19,6 +19,7 @@ type CliArgs struct {
 	Cors           bool
 	NoCors         bool
 	DropImages     bool
+	LogLevel       string
 }
 
 func Execute() {
@@ -57,7 +58,7 @@ func Execute() {
 				os.Exit(1)
 			}
 
-			srv := NewServer(opts, host, port, cors)
+			srv := NewServer(opts, host, port, cors, args.LogLevel)
 			srv.Start()
 		},
 	}
@@ -72,6 +73,7 @@ func Execute() {
 	flags.StringVar(&args.Model, "model", "", "Override the model field in incoming requests")
 	flags.BoolVar(&args.DropImages, "drop-images", false, "Drop images from user messages")
 	flags.BoolVar(&args.NoCors, "no-cors", false, "Disable CORS headers")
+	flags.StringVar(&args.LogLevel, "log-level", "info", "Log level: debug | info")
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)

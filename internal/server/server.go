@@ -21,16 +21,18 @@ type Server struct {
 	host    string
 	port    int
 	cors    bool
+	logLevel string
 	tracker *RequestTracker
 }
 
-func NewServer(opts proxy.ProxyOptions, host string, port int, cors bool) *Server {
+func NewServer(opts proxy.ProxyOptions, host string, port int, cors bool, logLevel string) *Server {
 	return &Server{
-		opts:    opts,
-		host:    host,
-		port:    port,
-		cors:    cors,
-		tracker: NewRequestTracker(),
+		opts:     opts,
+		host:     host,
+		port:     port,
+		cors:     cors,
+		logLevel: logLevel,
+		tracker:  NewRequestTracker(),
 	}
 }
 
@@ -86,6 +88,8 @@ func (s *Server) handleRequest(w http.ResponseWriter, r *http.Request) {
 	id := s.tracker.Add(r.Method, r.URL.Path)
 	defer s.tracker.Remove(id)
 
+	s.tracker.WriteLog(fmt.Sprintf("[%s] <- %s %s", fmtTime(time.Now()), r.Method, r.URL.Path))
+
 	body, _ := io.ReadAll(r.Body)
 	var req types.ResponsesRequest
 	json.Unmarshal(body, &req)
@@ -94,7 +98,6 @@ func (s *Server) handleRequest(w http.ResponseWriter, r *http.Request) {
 		req.Model = s.opts.Model
 	}
 
-	start := time.Now()
 	opts := s.opts
 	if opts.DefaultHeaders == nil {
 		opts.DefaultHeaders = make(map[string]string)
@@ -103,17 +106,23 @@ func (s *Server) handleRequest(w http.ResponseWriter, r *http.Request) {
 		opts.DefaultHeaders[k] = v[0]
 	}
 
+	format := proxy.ResolveFormat(opts)
+	targetUrl := proxy.NormalizeBaseUrl(s.opts.BaseURL, format)
+
+	s.tracker.WriteLog(fmt.Sprintf("[%s] -> redirect to Upstream POST %s", fmtTime(time.Now()), targetUrl))
+
 	var resultLog string
 	opts.OnCacheStats = func(stats types.CacheStats) {
-		duration := time.Since(start)
+		if s.logLevel != "debug" {
+			return
+		}
 		billed := stats.InputTokens + stats.OutputTokens - stats.CachedTokens
-		logMsg := fmt.Sprintf("[%s] -> 200 (%s) [total=%d, input=%d, output=%d, cached=%d, billed=%d]",
+		logMsg := fmt.Sprintf("   -> Cache Stats: [total=%d, input=%d, output=%d, cached=%d, billed=%d]",
 			fmtTime(time.Now()),
-			fmtDuration(duration),
 			stats.TotalTokens, stats.InputTokens, stats.OutputTokens, stats.CachedTokens, billed,
 		)
 		if stats.CachedTokens < 1024 && billed > 0 {
-			resultLog = "⚠️ NO CACHE -- " + logMsg
+			resultLog = "NO CACHE -- " + logMsg
 		} else {
 			resultLog = logMsg
 		}
@@ -149,18 +158,20 @@ func (s *Server) handleRequest(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(resp.StatusCode)
 	io.Copy(w, tee)
 
+	s.tracker.WriteLog(fmt.Sprintf("[%s] <- %d %s from Upstream %s", fmtTime(time.Now()), resp.StatusCode, http.StatusText(resp.StatusCode), targetUrl))
+
 	if resultLog != "" {
 		s.tracker.WriteLog(resultLog)
-	} else {
-		s.tracker.WriteLog(fmt.Sprintf("[%s] -> %d (%s)", fmtTime(time.Now()), resp.StatusCode, fmtDuration(time.Since(start))))
 	}
 
-	// Save last message
-	saveLastMessage(req, respBody.Bytes())
+	s.tracker.WriteLog(fmt.Sprintf("[%s] <- redirect from Upstream %s to client", fmtTime(time.Now()), targetUrl))
 
-	if resp.StatusCode >= 400 {
-		dumpPath := saveErrorDump(r, body, resp, respBody.Bytes())
-		fmt.Printf("\n[proxy-failure] full exchange saved to %s\n", dumpPath)
+	if s.logLevel == "debug" {
+		printExchange(req, respBody.Bytes())
+
+		if resp.StatusCode >= 400 {
+			printErrorDump(r, body, resp, respBody.Bytes())
+		}
 	}
 }
 

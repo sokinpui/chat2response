@@ -2,8 +2,6 @@ package server
 
 import (
 	"fmt"
-	"sort"
-	"strings"
 	"sync"
 	"time"
 
@@ -32,18 +30,7 @@ func NewRequestTracker() *RequestTracker {
 }
 
 func (t *RequestTracker) Start() {
-	t.ticker = time.NewTicker(150 * time.Millisecond)
-	go func() {
-		for {
-			select {
-			case <-t.ticker.C:
-				t.draw()
-			case <-t.stopChan:
-				t.ticker.Stop()
-				return
-			}
-		}
-	}()
+	// Dynamic timer display disabled
 }
 
 func (t *RequestTracker) Add(method, url string) string {
@@ -63,37 +50,10 @@ func (t *RequestTracker) Remove(id string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	delete(t.active, id)
-	if len(t.active) == 0 {
-		fmt.Print("\r\033[K")
-	}
 }
 
 func (t *RequestTracker) WriteLog(msg string) {
 	fmt.Printf("\r\033[K%s\n", msg)
-}
-
-func (t *RequestTracker) draw() {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-
-	if len(t.active) == 0 {
-		return
-	}
-
-	keys := make([]string, 0, len(t.active))
-	for k := range t.active {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	parts := make([]string, 0, len(keys))
-	for _, k := range keys {
-		req := t.active[k]
-		elapsed := time.Since(req.startTime)
-		parts = append(parts, fmt.Sprintf("[%s]", fmtDuration(elapsed)))
-	}
-
-	fmt.Printf("\r\033[K⏳ %s", strings.Join(parts, ", "))
 }
 
 func fmtTime(t time.Time) string {

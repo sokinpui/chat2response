@@ -4,16 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strings"
 	"time"
 )
 
-func saveLastMessage(req any, resp []byte) {
-	dir := "logs"
-	os.MkdirAll(dir, 0755)
-
+func printExchange(req any, resp []byte) {
 	payload := map[string]any{
 		"timestamp": time.Now().Format(time.RFC3339),
 		"request":   req,
@@ -21,17 +16,10 @@ func saveLastMessage(req any, resp []byte) {
 	}
 
 	data, _ := json.MarshalIndent(payload, "", "  ")
-	os.WriteFile(filepath.Join(dir, "last-message.json"), data, 0644)
+	fmt.Printf("\n--- Exchange Detail ---\n%s\n----------------------\n", string(data))
 }
 
-func saveErrorDump(r *http.Request, reqBody []byte, resp *http.Response, respBody []byte) string {
-	dir := "logs"
-	os.MkdirAll(dir, 0755)
-
-	ts := time.Now().Format("2006-01-02T15-04-05")
-	filename := fmt.Sprintf("proxy-error-%s-%d.json", ts, resp.StatusCode)
-	path := filepath.Join(dir, filename)
-
+func printErrorDump(r *http.Request, reqBody []byte, resp *http.Response, respBody []byte) {
 	clientHeaders := make(map[string]string)
 	for k, v := range r.Header {
 		clientHeaders[k] = strings.Join(v, ", ")
@@ -54,8 +42,7 @@ func saveErrorDump(r *http.Request, reqBody []byte, resp *http.Response, respBod
 	}
 
 	data, _ := json.MarshalIndent(dump, "", "  ")
-	os.WriteFile(path, data, 0644)
-	return path
+	fmt.Printf("\n--- Proxy Error Dump (%d) ---\n%s\n---------------------------\n", resp.StatusCode, string(data))
 }
 
 func redactAuth(headers map[string]string) {

@@ -36,14 +36,14 @@ type ProxyOptions struct {
 }
 
 func HandleResponses(ctx context.Context, req types.ResponsesRequest, opts ProxyOptions) (*http.Response, error) {
-	format := resolveFormat(opts)
+	format := ResolveFormat(opts)
 	streaming := false
 	if req.Stream != nil {
 		streaming = *req.Stream
 	}
 
 	upstreamBody, metadata := buildUpstreamBody(req, format, streaming, opts)
-	resolvedUrl := normalizeBaseUrl(opts.BaseURL, format)
+	resolvedUrl := NormalizeBaseUrl(opts.BaseURL, format)
 
 	bodyBytes, err := json.Marshal(upstreamBody)
 	if err != nil {
@@ -78,20 +78,20 @@ func HandleResponses(ctx context.Context, req types.ResponsesRequest, opts Proxy
 	return handleStreamResponse(resp, req.Model, format, metadata, opts)
 }
 
-func resolveFormat(opts ProxyOptions) types.UpstreamFormat {
+func ResolveFormat(opts ProxyOptions) types.UpstreamFormat {
 	if opts.UpstreamFormat != "" {
 		return opts.UpstreamFormat
 	}
-	if f := inferFormatFromUrl(opts.BaseURL); f != "" {
+	if f := InferFormatFromUrl(opts.BaseURL); f != "" {
 		return f
 	}
-	if f := inferFormatFromModel(opts.Model); f != "" {
+	if f := InferFormatFromModel(opts.Model); f != "" {
 		return f
 	}
 	return types.UpstreamFormatOpenAIChat
 }
 
-func inferFormatFromUrl(baseUrl string) types.UpstreamFormat {
+func InferFormatFromUrl(baseUrl string) types.UpstreamFormat {
 	u, err := url.Parse(baseUrl)
 	if err != nil {
 		return ""
@@ -106,14 +106,14 @@ func inferFormatFromUrl(baseUrl string) types.UpstreamFormat {
 	return ""
 }
 
-func inferFormatFromModel(model string) types.UpstreamFormat {
+func InferFormatFromModel(model string) types.UpstreamFormat {
 	if strings.HasPrefix(strings.ToLower(model), "claude") {
 		return types.UpstreamFormatAnthropic
 	}
 	return ""
 }
 
-func normalizeBaseUrl(baseUrl string, format types.UpstreamFormat) string {
+func NormalizeBaseUrl(baseUrl string, format types.UpstreamFormat) string {
 	u, err := url.Parse(baseUrl)
 	if err != nil {
 		return baseUrl
